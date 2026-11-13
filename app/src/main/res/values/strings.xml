@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">ISEU Schedule</string>
+    <string name="widget_name">Расписание на сегодня</string>
+    <string name="widget_description">Виджет расписания занятий на сегодня</string>
+</resources>

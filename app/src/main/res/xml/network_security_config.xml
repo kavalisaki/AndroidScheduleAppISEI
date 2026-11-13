@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Explicit cleartext permission strictly for university schedule domain -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">rsp.iseu.by</domain>
+    </domain-config>
+    <!-- Enforce HTTPS for all other traffic -->
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

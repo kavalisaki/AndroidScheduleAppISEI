@@ -1,0 +1,110 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Ambient Shadow -->
+    <path
+        android:fillColor="#40000000"
+        android:pathData="M31,37h46c4,0 7,3 7,7v34c0,4 -3,7 -7,7h-46c-4,0 -7,-3 -7,-7v-34c0,-4 3,-7 7,-7z" />
+
+    <!-- Calendar Card Body -->
+    <path
+        android:pathData="M31,34h46c3.8,0 7,3.2 7,7v34c0,3.8 -3.2,7 -7,7h-46c-3.8,0 -7,-3.2 -7,-7v-34c0,-3.8 3.2,-7 7,-7z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="31"
+                android:startY="34"
+                android:endX="84"
+                android:endY="82"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#FFFFFF" />
+                <item android:offset="1.0" android:color="#F1F5F9" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Calendar Top Header Strip -->
+    <path
+        android:pathData="M31,34h46c3.8,0 7,3.2 7,7v8h-60v-8c0,-3.8 3.2,-7 7,-7z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="31"
+                android:startY="34"
+                android:endX="84"
+                android:endY="49"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#6366F1" />
+                <item android:offset="1.0" android:color="#4F46E5" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Calendar Spiral Rings -->
+    <path
+        android:fillColor="#E0E7FF"
+        android:pathData="M38,30h4v7h-4z M52,30h4v7h-4z M66,30h4v7h-4z" />
+
+    <!-- Clock / Timer Outer Ring inside Calendar -->
+    <path
+        android:strokeWidth="2.5"
+        android:strokeColor="#6366F1"
+        android:fillColor="#EEF2FF"
+        android:pathData="M54,54m-12,0a12,12 0 1,0 24,0a12,12 0 1,0 -24,0" />
+
+    <!-- Clock Hands (Showing time / active lesson timer) -->
+    <path
+        android:strokeWidth="2"
+        android:strokeColor="#4F46E5"
+        android:strokeLineCap="round"
+        android:pathData="M54,54v-7 M54,54l5,3" />
+
+    <!-- Center Clock Pin -->
+    <path
+        android:fillColor="#4338CA"
+        android:pathData="M54,54m-1.5,0a1.5,1.5 0 1,0 3,0a1.5,1.5 0 1,0 -3,0" />
+
+    <!-- Calendar Schedule Dots / Status lines at bottom -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M38,72h8v2.5h-8z" />
+    <path
+        android:fillColor="#818CF8"
+        android:pathData="M50,72h12v2.5h-12z" />
+    <path
+        android:fillColor="#34D399"
+        android:pathData="M66,72h4v2.5h-4z" />
+
+    <!-- Academic Graduation Cap (ISEU Student Symbol) sitting smartly atop -->
+    <!-- Cap Rhombus -->
+    <path
+        android:pathData="M54,19L74,26L54,33L34,26Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="34"
+                android:startY="19"
+                android:endX="74"
+                android:endY="33"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#F59E0B" />
+                <item android:offset="1.0" android:color="#D97706" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <!-- Cap Under-band -->
+    <path
+        android:fillColor="#B45309"
+        android:pathData="M43,30v2.5c0,3 5,5 11,5s11,-2 11,-5v-2.5c-3,1.8 -7,2.5 -11,2.5s-8,-0.7 -11,-2.5z" />
+    <!-- Tassel Button & String -->
+    <path
+        android:fillColor="#FEF3C7"
+        android:pathData="M54,26m-1,0a1,1 0 1,0 2,0a1,1 0 1,0 -2,0" />
+    <path
+        android:strokeWidth="1.2"
+        android:strokeColor="#FDE68A"
+        android:strokeLineCap="round"
+        android:pathData="M54,26c4,0 15,3 16,9v4" />
+
+</vector>

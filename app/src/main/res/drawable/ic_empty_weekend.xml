@@ -1,0 +1,73 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="120dp"
+    android:height="120dp"
+    android:viewportWidth="120"
+    android:viewportHeight="120">
+
+    <!-- Soft ambient background circle -->
+    <path
+        android:fillColor="#156366F1"
+        android:pathData="M60,10A50,50 0 1,0 60,110A50,50 0 1,0 60,10Z" />
+
+    <!-- Saucer / Plate -->
+    <path
+        android:pathData="M32,88h56c3,0 5,2 4,5c-2,4 -14,8 -32,8s-30,-4 -32,-8c-1,-3 1,-5 4,-5z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="32"
+                android:startY="88"
+                android:endX="88"
+                android:endY="101"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#94A3B8" />
+                <item android:offset="1.0" android:color="#64748B" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Coffee Cup Body -->
+    <path
+        android:pathData="M40,50h40v24c0,8 -6,15 -15,16h-10c-9,-1 -15,-8 -15,-16v-24z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="40"
+                android:startY="50"
+                android:endX="80"
+                android:endY="90"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#818CF8" />
+                <item android:offset="1.0" android:color="#4F46E5" />
+            </gradient>
+        </aapt:attr>
+    </path>
+
+    <!-- Cup Rim highlight -->
+    <path
+        android:fillColor="#A5B4FC"
+        android:pathData="M38,48h44v4h-44z" />
+
+    <!-- Cup Handle -->
+    <path
+        android:strokeWidth="4.5"
+        android:strokeColor="#818CF8"
+        android:fillColor="#00000000"
+        android:pathData="M80,56c6,0 11,4 11,10s-5,10 -11,10" />
+
+    <!-- Steam Waves -->
+    <path
+        android:strokeWidth="3"
+        android:strokeColor="#C7D2FE"
+        android:strokeLineCap="round"
+        android:fillColor="#00000000"
+        android:pathData="M52,42c0,-4 3,-6 3,-10s-3,-6 -3,-10 M60,40c0,-4 3,-5 3,-9s-3,-5 -3,-9 M68,42c0,-4 3,-6 3,-10s-3,-6 -3,-10" />
+
+    <!-- Warm Sparkling Sun / Star in corner -->
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M92,28L94,22L96,28L102,30L96,32L94,38L92,32L86,30Z" />
+    <path
+        android:fillColor="#FCD34D"
+        android:pathData="M30,36L31.5,31.5L36,30L31.5,28.5L30,24L28.5,28.5L24,30L28.5,31.5Z" />
+
+</vector>
