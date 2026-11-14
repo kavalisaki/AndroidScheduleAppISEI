@@ -31,17 +31,6 @@ class ScheduleWidgetProvider : AppWidgetProvider() {
         }
     }
 
-    override fun onReceive(context: Context, intent: Intent) {
-        super.onReceive(context, intent)
-        if (intent.action == AppWidgetManager.ACTION_APPWIDGET_UPDATE) {
-            val appWidgetManager = AppWidgetManager.getInstance(context) ?: return
-            val componentName = ComponentName(context, ScheduleWidgetProvider::class.java)
-            val appWidgetIds = appWidgetManager.getAppWidgetIds(componentName) ?: return
-            for (id in appWidgetIds) {
-                updateWidget(context, appWidgetManager, id)
-            }
-        }
-    }
 
     companion object {
         fun updateAllWidgets(context: Context) {

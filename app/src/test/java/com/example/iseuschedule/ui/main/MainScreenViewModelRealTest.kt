@@ -69,7 +69,7 @@ class MainScreenViewModelRealTest {
     fun initialUserSettings_hasExpectedDefaults() {
         val settings = viewModel.userSettings.value
         assertEquals("4", settings.course)
-        assertEquals("А31ТТ1", settings.group)
+        assertEquals("31ПИ1", settings.group)
         assertEquals(0, settings.subgroup)
     }
 
@@ -181,7 +181,7 @@ class MainScreenViewModelRealTest {
         )
 
         // Save into repository cache
-        repository.saveToDiskCache(0, sampleSchedule, "А31ТТ1")
+        repository.saveToDiskCache(0, sampleSchedule, "31ПИ1")
 
         // Create new VM instance that loads cached data with fixed weekday TimeProvider
         val newVm = MainScreenViewModel(Application(), repository, mondayTimeProvider)
@@ -210,7 +210,7 @@ class MainScreenViewModelRealTest {
         )
 
         // Cache only week 0
-        repository.saveToDiskCache(0, sampleScheduleWeek0, "А31ТТ1")
+        repository.saveToDiskCache(0, sampleScheduleWeek0, "31ПИ1")
 
         val sundayProvider = FixedTimeProvider(LocalDate.of(2026, 10, 18)) // Sunday
         val sundayVm = MainScreenViewModel(Application(), repository, sundayProvider)
@@ -244,7 +244,7 @@ class MainScreenViewModelRealTest {
         )
 
         // Cache week 1
-        repository.saveToDiskCache(1, sampleScheduleWeek1, "А31ТТ1")
+        repository.saveToDiskCache(1, sampleScheduleWeek1, "31ПИ1")
 
         val sundayProvider = FixedTimeProvider(LocalDate.of(2026, 10, 18)) // Sunday
         val sundayVm = MainScreenViewModel(Application(), repository, sundayProvider)

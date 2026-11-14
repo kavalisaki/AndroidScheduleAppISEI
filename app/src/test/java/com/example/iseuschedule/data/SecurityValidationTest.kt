@@ -35,6 +35,8 @@ class SecurityValidationTest {
         assertFalse(mixedTraversal.contains(".."))
         assertFalse(mixedTraversal.contains("/"))
         assertEquals("foobar", mixedTraversal)
+
+        assertFalse(ScheduleRepository.sanitizeGroup("./.").contains(".."))
     }
 
     @Test
@@ -64,7 +66,7 @@ class SecurityValidationTest {
     @Test
     fun sanitizeGroup_preservesLegitimateGroupNames() {
         assertEquals("31ПИ1", ScheduleRepository.sanitizeGroup("31ПИ1"))
-        assertEquals("А31ТТ1", ScheduleRepository.sanitizeGroup("А31ТТ1"))
+        assertEquals("А31ИС1", ScheduleRepository.sanitizeGroup("А31ИС1"))
         assertEquals("41ИС1", ScheduleRepository.sanitizeGroup("41ИС1"))
         assertEquals("31ПИ1 (б)", ScheduleRepository.sanitizeGroup("31ПИ1 (б)"))
         assertEquals("11-А", ScheduleRepository.sanitizeGroup("11-А"))

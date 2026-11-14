@@ -22,9 +22,18 @@ class UserSettingsTest {
     fun defaultSettings_hasSensibleDefaults() {
         val settings = userSettingsRepository.getSettings()
         assertEquals("4", settings.course)
-        assertEquals("А31ТТ1", settings.group)
+        assertEquals("31ПИ1", settings.group)
         assertEquals(0, settings.subgroup)
         assertEquals("SYSTEM", settings.themeMode)
+        assertEquals(true, settings.showTomorrowPreview)
+    }
+
+    @Test
+    fun updateShowTomorrowPreview_updatesStateAndFlow() {
+        userSettingsRepository.updateShowTomorrowPreview(false)
+
+        assertEquals(false, userSettingsRepository.getSettings().showTomorrowPreview)
+        assertEquals(false, userSettingsRepository.settingsFlow.value.showTomorrowPreview)
     }
 
     @Test
@@ -41,7 +50,7 @@ class UserSettingsTest {
 
         assertEquals("3", userSettingsRepository.getSettings().course)
         assertEquals("3", userSettingsRepository.settingsFlow.value.course)
-        assertEquals("А31ТТ1", userSettingsRepository.getSettings().group) // group intact
+        assertEquals("31ПИ1", userSettingsRepository.getSettings().group) // group intact
     }
 
     @Test
@@ -50,7 +59,7 @@ class UserSettingsTest {
 
         assertEquals("5", userSettingsRepository.getSettings().course)
         assertEquals("5", userSettingsRepository.settingsFlow.value.course)
-        assertEquals("А31ТТ1", userSettingsRepository.getSettings().group) // group intact
+        assertEquals("31ПИ1", userSettingsRepository.getSettings().group) // group intact
     }
 
     @Test

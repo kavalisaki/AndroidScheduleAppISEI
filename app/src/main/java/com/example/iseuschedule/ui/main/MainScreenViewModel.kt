@@ -82,6 +82,10 @@ class MainScreenViewModel @JvmOverloads constructor(
         userSettingsRepository.updateThemeMode(mode)
     }
 
+    fun setShowTomorrowPreview(enabled: Boolean) {
+        userSettingsRepository.updateShowTomorrowPreview(enabled)
+    }
+
     suspend fun fetchGroups(course: String): List<String> {
         return repository.fetchAvailableGroups(course).getOrDefault(emptyList())
     }

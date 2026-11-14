@@ -87,15 +87,16 @@ class NetworkRateLimiter(
 class ScheduleRepository(
     private val context: Context? = null,
     private val cacheDir: File? = null,
-    client: OkHttpClient? = null,
+    private val customClient: OkHttpClient? = null,
     val userSettingsRepository: UserSettingsRepository = UserSettingsRepository(context),
-    val rateLimiter: NetworkRateLimiter = NetworkRateLimiter()
+    val rateLimiter: NetworkRateLimiter = NetworkRateLimiter(),
+    client: OkHttpClient? = null
 ) {
 
     companion object {
         const val SITE_URL = "http://rsp.iseu.by/Raspisanie/TimeTable/umu.aspx"
         const val DEFAULT_COURSE = "4"
-        const val DEFAULT_GROUP = "А31ТТ1"
+        const val DEFAULT_GROUP = "31ПИ1"
         const val USER_AGENT = "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"
         const val CACHE_TTL_MS = 60 * 60 * 1000L // 1 hour
         const val GROUPS_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000L // 7 days
@@ -125,6 +126,11 @@ class ScheduleRepository(
             cleaned = cleaned.filter { ch ->
                 ch.isLetterOrDigit() || ch in setOf('-', '_', '.', ' ', '(', ')')
             }.trim()
+
+            while (cleaned.contains("..")) {
+                cleaned = cleaned.replace("..", "")
+            }
+            cleaned = cleaned.trim('.', ' ')
 
             if (cleaned.isBlank()) return DEFAULT_GROUP
 
@@ -174,13 +180,17 @@ class ScheduleRepository(
 
     private fun getCacheDirectory(): File? = cacheDir ?: context?.cacheDir
 
-    private val client: OkHttpClient = client ?: OkHttpClient.Builder()
-        .cookieJar(SimpleCookieJar())
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(45, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
-        .retryOnConnectionFailure(true)
-        .build()
+    private val initialClient: OkHttpClient? = customClient ?: client
+
+    private val client: OkHttpClient by lazy {
+        initialClient ?: OkHttpClient.Builder()
+            .cookieJar(SimpleCookieJar())
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(45, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(true)
+            .build()
+    }
 
     private val _recentScheduleChanges = MutableStateFlow<ScheduleDiffResult?>(null)
     val recentScheduleChanges: StateFlow<ScheduleDiffResult?> = _recentScheduleChanges.asStateFlow()
@@ -317,8 +327,9 @@ class ScheduleRepository(
         course: String,
         forceRefresh: Boolean = false
     ): Result<List<String>> = withContext(Dispatchers.IO) {
+        val validCourse = validateCourse(course)
         val baseDir = getCacheDirectory()
-        val groupsCacheFile = baseDir?.let { File(it, "groups_course_$course.json") }
+        val groupsCacheFile = baseDir?.let { File(it, "groups_course_$validCourse.json") }
 
         if (!forceRefresh && groupsCacheFile != null && groupsCacheFile.exists()) {
             val age = System.currentTimeMillis() - groupsCacheFile.lastModified()
@@ -347,14 +358,15 @@ class ScheduleRepository(
                 .header("Accept-Language", "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7")
                 .build()
 
-            val resp1 = sessionClient.newCall(req1).execute()
-            val html1 = resp1.body?.string() ?: throw IllegalStateException("Empty response from $SITE_URL")
+            val html1 = sessionClient.newCall(req1).execute().use { resp1 ->
+                resp1.body?.string() ?: throw IllegalStateException("Empty response from $SITE_URL")
+            }
             val doc1 = Jsoup.parse(html1)
             val form1 = ScheduleParser.extractAspnetFormState(doc1)
 
             form1["__EVENTTARGET"] = "ddlCourse"
             form1["__EVENTARGUMENT"] = ""
-            form1["ddlCourse"] = course
+            form1["ddlCourse"] = validCourse
 
             val formBody2 = FormBody.Builder()
             form1.forEach { (k, v) -> formBody2.add(k, v) }
@@ -368,8 +380,9 @@ class ScheduleRepository(
                 .post(formBody2.build())
                 .build()
 
-            val resp2 = sessionClient.newCall(req2).execute()
-            val html2 = resp2.body?.string() ?: throw IllegalStateException("Empty course response")
+            val html2 = sessionClient.newCall(req2).execute().use { resp2 ->
+                resp2.body?.string() ?: throw IllegalStateException("Empty course response")
+            }
             val doc2 = Jsoup.parse(html2)
             val groups = ScheduleParser.extractGroups(doc2)
 
@@ -406,8 +419,9 @@ class ScheduleRepository(
             .header("Accept-Language", "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7")
             .build()
 
-        val resp1 = sessionClient.newCall(req1).execute()
-        val html1 = resp1.body?.string() ?: throw IllegalStateException("Empty response from $SITE_URL")
+        val html1 = sessionClient.newCall(req1).execute().use { resp1 ->
+            resp1.body?.string() ?: throw IllegalStateException("Empty response from $SITE_URL")
+        }
         val doc1 = Jsoup.parse(html1)
         val form1 = ScheduleParser.extractAspnetFormState(doc1)
 
@@ -428,8 +442,9 @@ class ScheduleRepository(
             .post(formBody2.build())
             .build()
 
-        val resp2 = sessionClient.newCall(req2).execute()
-        val html2 = resp2.body?.string() ?: throw IllegalStateException("Empty course response")
+        val html2 = sessionClient.newCall(req2).execute().use { resp2 ->
+            resp2.body?.string() ?: throw IllegalStateException("Empty course response")
+        }
         val doc2 = Jsoup.parse(html2)
         val form2 = ScheduleParser.extractAspnetFormState(doc2)
 
@@ -464,8 +479,9 @@ class ScheduleRepository(
             .post(formBody3.build())
             .build()
 
-        val resp3 = sessionClient.newCall(req3).execute()
-        val html3 = resp3.body?.string() ?: throw IllegalStateException("Empty group response")
+        val html3 = sessionClient.newCall(req3).execute().use { resp3 ->
+            resp3.body?.string() ?: throw IllegalStateException("Empty group response")
+        }
         val doc3 = Jsoup.parse(html3)
         var formCurrent = ScheduleParser.extractAspnetFormState(doc3)
 
@@ -513,8 +529,9 @@ class ScheduleRepository(
                         .post(weekBody.build())
                         .build()
 
-                    val respWeek = sessionClient.newCall(reqWeek).execute()
-                    val htmlWeek = respWeek.body?.string() ?: ""
+                    val htmlWeek = sessionClient.newCall(reqWeek).execute().use { respWeek ->
+                        respWeek.body?.string() ?: ""
+                    }
                     formCurrent = ScheduleParser.extractAspnetFormState(Jsoup.parse(htmlWeek))
                 }
             }
@@ -537,8 +554,9 @@ class ScheduleRepository(
             .post(formBodyFinal.build())
             .build()
 
-        val respFinal = sessionClient.newCall(reqFinal).execute()
-        val htmlFinal = respFinal.body?.string() ?: throw IllegalStateException("Empty timetable response")
+        val htmlFinal = sessionClient.newCall(reqFinal).execute().use { respFinal ->
+            respFinal.body?.string() ?: throw IllegalStateException("Empty timetable response")
+        }
 
         return ScheduleParser.parseScheduleHtml(htmlFinal, weekOffset)
     }

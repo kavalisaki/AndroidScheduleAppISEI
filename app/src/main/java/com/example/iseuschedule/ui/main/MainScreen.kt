@@ -212,7 +212,8 @@ fun MainScreen(
                     ) {
                         ScheduleList(
                             schedule = s.schedule,
-                            selectedSubgroup = userSettings.subgroup
+                            selectedSubgroup = userSettings.subgroup,
+                            showTomorrowPreview = userSettings.showTomorrowPreview
                         )
                     }
                 }
@@ -235,6 +236,7 @@ fun MainScreen(
             currentCourse = userSettings.course,
             currentGroup = userSettings.group,
             currentThemeMode = userSettings.themeMode,
+            currentShowTomorrowPreview = userSettings.showTomorrowPreview,
             onDismiss = { showSettingsDialog = false },
             onSave = { course, group ->
                 viewModel.setCourseAndGroup(course, group)
@@ -243,6 +245,7 @@ fun MainScreen(
             onThemeModeChange = { mode ->
                 viewModel.setThemeMode(mode)
             },
+            onShowTomorrowPreviewChange = { viewModel.setShowTomorrowPreview(it) },
             onFetchGroups = { course ->
                 viewModel.fetchGroups(course)
             }
@@ -424,6 +427,7 @@ fun ErrorView(
 fun ScheduleList(
     schedule: WeekSchedule,
     selectedSubgroup: Int = 0,
+    showTomorrowPreview: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
@@ -446,12 +450,15 @@ fun ScheduleList(
     ) {
         val todayDay = schedule.days.find { LessonTimeHelper.isToday(it.date) }
             ?: schedule.days.find { it.dayNum == todayDayNum }
+        val tomorrowDay = todayDay?.let { td -> schedule.days.find { it.dayNum == td.dayNum + 1 } }
 
         if (todayDay != null && todayDay.lessons.isNotEmpty()) {
             item(key = "live_timer_card") {
                 LiveLessonTimerCard(
                     lessons = todayDay.lessons,
-                    selectedSubgroup = selectedSubgroup
+                    selectedSubgroup = selectedSubgroup,
+                    tomorrowDay = tomorrowDay,
+                    showTomorrowPreview = showTomorrowPreview
                 )
             }
         }
@@ -917,14 +924,17 @@ fun SettingsDialog(
     currentCourse: String,
     currentGroup: String,
     currentThemeMode: String = "SYSTEM",
+    currentShowTomorrowPreview: Boolean = true,
     onDismiss: () -> Unit,
     onSave: (course: String, group: String) -> Unit,
     onThemeModeChange: (String) -> Unit = {},
+    onShowTomorrowPreviewChange: (Boolean) -> Unit = {},
     onFetchGroups: suspend (course: String) -> List<String>
 ) {
     var selectedCourse by remember { mutableStateOf(currentCourse) }
     var selectedGroup by remember { mutableStateOf(currentGroup) }
     var selectedThemeMode by remember { mutableStateOf(currentThemeMode) }
+    var selectedShowTomorrow by remember { mutableStateOf(currentShowTomorrowPreview) }
     var availableGroups by remember { mutableStateOf<List<String>>(emptyList()) }
     var groupSearchQuery by remember { mutableStateOf("") }
     var isLoadingGroups by remember { mutableStateOf(false) }
@@ -1094,6 +1104,34 @@ fun SettingsDialog(
                                 label = { Text(label) }
                             )
                         }
+                    }
+                }
+
+                // Tomorrow preview toggle
+                Column {
+                    Text(
+                        text = "Анонс на завтра (после пар):",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(
+                            selected = selectedShowTomorrow,
+                            onClick = {
+                                selectedShowTomorrow = true
+                                onShowTomorrowPreviewChange(true)
+                            },
+                            label = { Text("Вкл") }
+                        )
+                        FilterChip(
+                            selected = !selectedShowTomorrow,
+                            onClick = {
+                                selectedShowTomorrow = false
+                                onShowTomorrowPreviewChange(false)
+                            },
+                            label = { Text("Выкл") }
+                        )
                     }
                 }
             }

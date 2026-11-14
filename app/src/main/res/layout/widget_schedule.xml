@@ -43,7 +43,7 @@
                     android:background="@drawable/widget_badge_bg"
                     android:paddingHorizontal="6dp"
                     android:paddingVertical="2dp"
-                    android:text="А31ТТ1"
+                    android:text="31ПИ1"
                     android:textColor="#FFFFFF"
                     android:textSize="11sp"
                     android:textStyle="bold" />

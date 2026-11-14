@@ -26,6 +26,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.example.iseuschedule.data.model.DaySchedule
 import com.example.iseuschedule.data.model.Lesson
 import com.example.iseuschedule.data.model.LessonTimeHelper
 import com.example.iseuschedule.data.model.LiveLessonStatus
@@ -40,6 +41,8 @@ import java.time.LocalTime
 fun LiveLessonTimerCard(
     lessons: List<Lesson>,
     selectedSubgroup: Int = 0,
+    tomorrowDay: DaySchedule? = null,
+    showTomorrowPreview: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val visibleLessons = remember(lessons, selectedSubgroup) {
@@ -50,6 +53,16 @@ fun LiveLessonTimerCard(
                 else -> true
             }
         }
+    }
+
+    val tomorrowLessons = remember(tomorrowDay, selectedSubgroup) {
+        tomorrowDay?.lessons?.filter { lesson ->
+            when (selectedSubgroup) {
+                1 -> lesson.subgroup == null || lesson.subgroup == 1
+                2 -> lesson.subgroup == null || lesson.subgroup == 2
+                else -> true
+            }
+        } ?: emptyList()
     }
 
     var currentTime by remember { mutableStateOf(LocalTime.now()) }
@@ -226,11 +239,10 @@ fun LiveLessonTimerCard(
                 ),
                 shape = RoundedCornerShape(16.dp)
             ) {
-                Row(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(14.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .padding(14.dp)
                 ) {
                     Text(
                         text = "🎉 Все пары на сегодня завершились! Свободное время.",
@@ -238,6 +250,24 @@ fun LiveLessonTimerCard(
                         fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    if (showTomorrowPreview && tomorrowDay != null) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        val tomorrowText = if (tomorrowLessons.isNotEmpty()) {
+                            val first = tomorrowLessons.first()
+                            val startTime = first.time.substringBefore("-").trim()
+                            val roomSuffix = if (first.room.isNotBlank()) " (${first.room})" else ""
+                            "Завтра: к ${first.order}-й паре ($startTime) • ${first.subject}$roomSuffix"
+                        } else {
+                            "Завтра (${tomorrowDay.dayName.lowercase()}): пар нет"
+                        }
+                        Text(
+                            text = tomorrowText,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.85f),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 }
             }
         }

@@ -15,6 +15,10 @@ android {
         versionName = "1.0"
     }
 
+    androidResources {
+        localeFilters += listOf("ru")
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true

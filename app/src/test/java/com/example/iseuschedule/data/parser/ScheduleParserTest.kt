@@ -179,10 +179,10 @@ class ScheduleParserTest {
 
     @Test
     fun findMatchingGroup_normalizedCyrillicAndLatin_matchesCorrectly() {
-        val groups = listOf("31ПИ1", "41ТТ1", "А31ТТ1")
-        // "A31TT1" typed with Latin A and T (lookalikes of Cyrillic А and Т)
-        val match = ScheduleParser.findMatchingGroup(groups, "A31TT1")
-        assertEquals("Normalized match should resolve Latin/Cyrillic lookalikes", "А31ТТ1", match)
+        val groups = listOf("31ПИ1", "41ТТ1", "А31ИС1")
+        // "A31ИС1" typed with Latin A (lookalike of Cyrillic А)
+        val match = ScheduleParser.findMatchingGroup(groups, "A31ИС1")
+        assertEquals("Normalized match should resolve Latin/Cyrillic lookalikes", "А31ИС1", match)
 
         // "41TT1" typed with Latin T
         val matchTT = ScheduleParser.findMatchingGroup(groups, "41TT1")

@@ -147,7 +147,7 @@ class ScheduleRepositoryCacheTest {
             })
             .build()
 
-        val offlineRepo = ScheduleRepository(cacheDir = tempDir, client = failingClient)
+        val offlineRepo = ScheduleRepository(cacheDir = tempDir, customClient = failingClient)
         val cachedSchedule = createSampleSchedule(week = 0)
 
         // Save schedule into disk cache
@@ -168,7 +168,7 @@ class ScheduleRepositoryCacheTest {
             })
             .build()
 
-        val offlineRepo = ScheduleRepository(cacheDir = tempDir, client = failingClient)
+        val offlineRepo = ScheduleRepository(cacheDir = tempDir, customClient = failingClient)
         val cachedSchedule = createSampleSchedule(week = 0)
         offlineRepo.saveToDiskCache(0, cachedSchedule)
 
@@ -249,7 +249,7 @@ class ScheduleRepositoryCacheTest {
 
         val repo = ScheduleRepository(
             cacheDir = tempDir,
-            client = failingClient,
+            customClient = failingClient,
             rateLimiter = NetworkRateLimiter(minIntervalMs = 0L)
         )
 
@@ -279,7 +279,7 @@ class ScheduleRepositoryCacheTest {
 
         val repo = ScheduleRepository(
             cacheDir = tempDir,
-            client = customClient,
+            customClient = customClient,
             rateLimiter = NetworkRateLimiter(minIntervalMs = 0L)
         )
 
@@ -305,7 +305,7 @@ class ScheduleRepositoryCacheTest {
 
         val repo = ScheduleRepository(
             cacheDir = tempDir,
-            client = failingClient,
+            customClient = failingClient,
             rateLimiter = NetworkRateLimiter(minIntervalMs = 0L)
         )
 
