@@ -73,8 +73,19 @@ class MainScreenViewModel @JvmOverloads constructor(
         userSettingsRepository.updateSubgroup(subgroup)
     }
 
-    fun setCourseAndGroup(course: String, group: String) {
-        userSettingsRepository.updateSettings(course, group, userSettings.value.subgroup)
+    fun setFaculty(faculty: String) {
+        userSettingsRepository.updateFaculty(faculty)
+    }
+
+    fun setCourseAndGroup(course: String, group: String, faculty: String = userSettings.value.faculty) {
+        userSettingsRepository.updateSettings(
+            course = course,
+            group = group,
+            subgroup = userSettings.value.subgroup,
+            themeMode = userSettings.value.themeMode,
+            showTomorrowPreview = userSettings.value.showTomorrowPreview,
+            faculty = faculty
+        )
         loadSchedule(_selectedWeek.value, forceRefresh = true)
     }
 
@@ -86,8 +97,8 @@ class MainScreenViewModel @JvmOverloads constructor(
         userSettingsRepository.updateShowTomorrowPreview(enabled)
     }
 
-    suspend fun fetchGroups(course: String): List<String> {
-        return repository.fetchAvailableGroups(course).getOrDefault(emptyList())
+    suspend fun fetchGroups(course: String, faculty: String = userSettings.value.faculty): List<String> {
+        return repository.fetchAvailableGroups(course, faculty = faculty).getOrDefault(emptyList())
     }
 
     private fun mapErrorMessage(error: Throwable): String {

@@ -95,15 +95,22 @@ class ScheduleRepository(
 
     companion object {
         const val SITE_URL = "http://rsp.iseu.by/Raspisanie/TimeTable/umu.aspx"
+        const val DEFAULT_FACULTY = "2"
         const val DEFAULT_COURSE = "4"
         const val DEFAULT_GROUP = "31ПИ1"
         const val USER_AGENT = "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36"
         const val CACHE_TTL_MS = 60 * 60 * 1000L // 1 hour
         const val GROUPS_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000L // 7 days
 
+        val ALLOWED_FACULTIES = setOf("2", "4")
         val ALLOWED_COURSES = setOf("1", "2", "3", "4", "5", "6")
         const val MIN_WEEK_OFFSET = -26
         const val MAX_WEEK_OFFSET = 26
+
+        fun validateFaculty(faculty: String?): String {
+            val trimmed = faculty?.trim() ?: DEFAULT_FACULTY
+            return if (trimmed in ALLOWED_FACULTIES) trimmed else DEFAULT_FACULTY
+        }
 
         /**
          * Sanitizes group name against Path Traversal and filesystem injection attacks.
@@ -205,6 +212,12 @@ class ScheduleRepository(
             .build()
     }
 
+    fun getTargetFaculty(faculty: String? = null): String {
+        val raw = faculty?.takeIf { it.isNotBlank() }
+            ?: userSettingsRepository.getSettings().faculty.ifBlank { DEFAULT_FACULTY }
+        return validateFaculty(raw)
+    }
+
     fun getTargetCourse(course: String? = null): String {
         val raw = course?.takeIf { it.isNotBlank() }
             ?: userSettingsRepository.getSettings().course.ifBlank { DEFAULT_COURSE }
@@ -258,8 +271,10 @@ class ScheduleRepository(
         weekOffset: Int = 0,
         course: String? = null,
         group: String? = null,
+        faculty: String? = null,
         forceRefresh: Boolean = false
     ): Flow<Result<WeekSchedule>> = flow {
+        val targetFaculty = getTargetFaculty(faculty)
         val targetCourse = getTargetCourse(course)
         val targetGroup = getTargetGroup(group)
         val key = getCacheKey(targetGroup, weekOffset)
@@ -275,7 +290,7 @@ class ScheduleRepository(
         }
 
         try {
-            val freshSchedule = loadFromNetwork(weekOffset, targetCourse, targetGroup)
+            val freshSchedule = loadFromNetwork(weekOffset, targetCourse, targetGroup, targetFaculty)
             if (cached != null && cached.days.isNotEmpty()) {
                 val diff = ScheduleDiffHelper.findDifferences(cached, freshSchedule)
                 if (diff.hasChanges) {
@@ -295,15 +310,17 @@ class ScheduleRepository(
     suspend fun fetchSchedule(
         weekOffset: Int = 0,
         course: String? = null,
-        group: String? = null
+        group: String? = null,
+        faculty: String? = null
     ): Result<WeekSchedule> = withContext(Dispatchers.IO) {
+        val targetFaculty = getTargetFaculty(faculty)
         val targetCourse = getTargetCourse(course)
         val targetGroup = getTargetGroup(group)
         val key = getCacheKey(targetGroup, weekOffset)
 
         try {
             val cached = getCachedSchedule(weekOffset, targetGroup)
-            val freshSchedule = loadFromNetwork(weekOffset, targetCourse, targetGroup)
+            val freshSchedule = loadFromNetwork(weekOffset, targetCourse, targetGroup, targetFaculty)
             if (cached != null && cached.days.isNotEmpty()) {
                 val diff = ScheduleDiffHelper.findDifferences(cached, freshSchedule)
                 if (diff.hasChanges) {
@@ -325,11 +342,15 @@ class ScheduleRepository(
 
     suspend fun fetchAvailableGroups(
         course: String,
+        faculty: String? = null,
         forceRefresh: Boolean = false
     ): Result<List<String>> = withContext(Dispatchers.IO) {
         val validCourse = validateCourse(course)
+        val validFaculty = getTargetFaculty(faculty)
         val baseDir = getCacheDirectory()
-        val groupsCacheFile = baseDir?.let { File(it, "groups_course_$validCourse.json") }
+        val primaryCacheFile = baseDir?.let { File(it, "groups_fac_${validFaculty}_course_${validCourse}.json") }
+        val legacyCacheFile = if (validFaculty == DEFAULT_FACULTY) baseDir?.let { File(it, "groups_course_${validCourse}.json") } else null
+        val groupsCacheFile = if (primaryCacheFile != null && primaryCacheFile.exists()) primaryCacheFile else (legacyCacheFile ?: primaryCacheFile)
 
         if (!forceRefresh && groupsCacheFile != null && groupsCacheFile.exists()) {
             val age = System.currentTimeMillis() - groupsCacheFile.lastModified()
@@ -362,14 +383,39 @@ class ScheduleRepository(
                 resp1.body?.string() ?: throw IllegalStateException("Empty response from $SITE_URL")
             }
             val doc1 = Jsoup.parse(html1)
-            val form1 = ScheduleParser.extractAspnetFormState(doc1)
+            var formState = ScheduleParser.extractAspnetFormState(doc1)
 
-            form1["__EVENTTARGET"] = "ddlCourse"
-            form1["__EVENTARGUMENT"] = ""
-            form1["ddlCourse"] = validCourse
+            if (validFaculty != DEFAULT_FACULTY) {
+                formState["__EVENTTARGET"] = "ddlFac"
+                formState["__EVENTARGUMENT"] = ""
+                formState["ddlFac"] = validFaculty
+
+                val facBody = FormBody.Builder()
+                formState.forEach { (k, v) -> facBody.add(k, v) }
+
+                val reqFac = Request.Builder()
+                    .url(SITE_URL)
+                    .header("User-Agent", USER_AGENT)
+                    .header("Connection", "close")
+                    .header("Origin", "http://rsp.iseu.by")
+                    .header("Referer", SITE_URL)
+                    .post(facBody.build())
+                    .build()
+
+                val htmlFac = sessionClient.newCall(reqFac).execute().use { respFac ->
+                    respFac.body?.string() ?: throw IllegalStateException("Empty faculty response")
+                }
+                val docFac = Jsoup.parse(htmlFac)
+                formState = ScheduleParser.extractAspnetFormState(docFac)
+            }
+
+            formState["__EVENTTARGET"] = "ddlCourse"
+            formState["__EVENTARGUMENT"] = ""
+            formState["ddlFac"] = validFaculty
+            formState["ddlCourse"] = validCourse
 
             val formBody2 = FormBody.Builder()
-            form1.forEach { (k, v) -> formBody2.add(k, v) }
+            formState.forEach { (k, v) -> formBody2.add(k, v) }
 
             val req2 = Request.Builder()
                 .url(SITE_URL)
@@ -386,10 +432,10 @@ class ScheduleRepository(
             val doc2 = Jsoup.parse(html2)
             val groups = ScheduleParser.extractGroups(doc2)
 
-            if (groups.isNotEmpty() && groupsCacheFile != null) {
+            if (groups.isNotEmpty() && primaryCacheFile != null) {
                 try {
                     if (!baseDir.exists()) baseDir.mkdirs()
-                    groupsCacheFile.writeText(json.encodeToString(groups))
+                    primaryCacheFile.writeText(json.encodeToString(groups))
                 } catch (_: Exception) {}
             }
 
@@ -406,7 +452,12 @@ class ScheduleRepository(
         }
     }
 
-    private suspend fun loadFromNetwork(weekOffset: Int, targetCourse: String, targetGroup: String): WeekSchedule {
+    private suspend fun loadFromNetwork(
+        weekOffset: Int,
+        targetCourse: String,
+        targetGroup: String,
+        targetFaculty: String = DEFAULT_FACULTY
+    ): WeekSchedule {
         rateLimiter.acquire()
         val sessionClient = createSessionClient()
 
@@ -423,15 +474,40 @@ class ScheduleRepository(
             resp1.body?.string() ?: throw IllegalStateException("Empty response from $SITE_URL")
         }
         val doc1 = Jsoup.parse(html1)
-        val form1 = ScheduleParser.extractAspnetFormState(doc1)
+        var formCurrent = ScheduleParser.extractAspnetFormState(doc1)
+
+        // 1.5 If faculty is not default, switch faculty
+        if (targetFaculty != DEFAULT_FACULTY) {
+            formCurrent["__EVENTTARGET"] = "ddlFac"
+            formCurrent["__EVENTARGUMENT"] = ""
+            formCurrent["ddlFac"] = targetFaculty
+
+            val facBody = FormBody.Builder()
+            formCurrent.forEach { (k, v) -> facBody.add(k, v) }
+
+            val reqFac = Request.Builder()
+                .url(SITE_URL)
+                .header("User-Agent", USER_AGENT)
+                .header("Connection", "close")
+                .header("Origin", "http://rsp.iseu.by")
+                .header("Referer", SITE_URL)
+                .post(facBody.build())
+                .build()
+
+            val htmlFac = sessionClient.newCall(reqFac).execute().use { respFac ->
+                respFac.body?.string() ?: throw IllegalStateException("Empty faculty response")
+            }
+            formCurrent = ScheduleParser.extractAspnetFormState(Jsoup.parse(htmlFac))
+        }
 
         // 2. Select Course (ddlCourse = targetCourse)
-        form1["__EVENTTARGET"] = "ddlCourse"
-        form1["__EVENTARGUMENT"] = ""
-        form1["ddlCourse"] = targetCourse
+        formCurrent["__EVENTTARGET"] = "ddlCourse"
+        formCurrent["__EVENTARGUMENT"] = ""
+        formCurrent["ddlFac"] = targetFaculty
+        formCurrent["ddlCourse"] = targetCourse
 
         val formBody2 = FormBody.Builder()
-        form1.forEach { (k, v) -> formBody2.add(k, v) }
+        formCurrent.forEach { (k, v) -> formBody2.add(k, v) }
 
         val req2 = Request.Builder()
             .url(SITE_URL)
@@ -464,6 +540,7 @@ class ScheduleRepository(
 
         form2["__EVENTTARGET"] = "ddlGroup"
         form2["__EVENTARGUMENT"] = ""
+        form2["ddlFac"] = targetFaculty
         form2["ddlCourse"] = targetCourse
         form2["ddlGroup"] = groupValue
 
@@ -483,7 +560,7 @@ class ScheduleRepository(
             resp3.body?.string() ?: throw IllegalStateException("Empty group response")
         }
         val doc3 = Jsoup.parse(html3)
-        var formCurrent = ScheduleParser.extractAspnetFormState(doc3)
+        formCurrent = ScheduleParser.extractAspnetFormState(doc3)
 
         // 4. Select Week (if weekOffset != 0)
         if (weekOffset != 0) {
@@ -513,6 +590,7 @@ class ScheduleRepository(
                 if (weekValue != null) {
                     formCurrent["__EVENTTARGET"] = "ddlWeek"
                     formCurrent["__EVENTARGUMENT"] = ""
+                    formCurrent["ddlFac"] = targetFaculty
                     formCurrent["ddlCourse"] = targetCourse
                     formCurrent["ddlGroup"] = groupValue
                     formCurrent["ddlWeek"] = weekValue
@@ -540,6 +618,9 @@ class ScheduleRepository(
         // 5. Click ShowTT ("Показать")
         formCurrent["__EVENTTARGET"] = ""
         formCurrent["__EVENTARGUMENT"] = ""
+        formCurrent["ddlFac"] = targetFaculty
+        formCurrent["ddlCourse"] = targetCourse
+        formCurrent["ddlGroup"] = groupValue
         formCurrent["ShowTT"] = "Показать"
 
         val formBodyFinal = FormBody.Builder()
@@ -632,7 +713,7 @@ class ScheduleRepository(
         memoryCache.clear()
         val baseDir = getCacheDirectory() ?: return
         try {
-            baseDir.listFiles { _, name -> name.startsWith("schedule_") || name.startsWith("groups_course_") }?.forEach { it.delete() }
+            baseDir.listFiles { _, name -> name.startsWith("schedule_") || name.startsWith("groups_") }?.forEach { it.delete() }
         } catch (_: Exception) {}
     }
 

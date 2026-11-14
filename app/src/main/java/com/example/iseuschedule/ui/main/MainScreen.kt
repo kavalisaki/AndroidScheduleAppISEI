@@ -233,21 +233,22 @@ fun MainScreen(
 
     if (showSettingsDialog) {
         SettingsDialog(
+            currentFaculty = userSettings.faculty,
             currentCourse = userSettings.course,
             currentGroup = userSettings.group,
             currentThemeMode = userSettings.themeMode,
             currentShowTomorrowPreview = userSettings.showTomorrowPreview,
             onDismiss = { showSettingsDialog = false },
-            onSave = { course, group ->
-                viewModel.setCourseAndGroup(course, group)
+            onSave = { course, group, faculty ->
+                viewModel.setCourseAndGroup(course, group, faculty)
                 showSettingsDialog = false
             },
             onThemeModeChange = { mode ->
                 viewModel.setThemeMode(mode)
             },
             onShowTomorrowPreviewChange = { viewModel.setShowTomorrowPreview(it) },
-            onFetchGroups = { course ->
-                viewModel.fetchGroups(course)
+            onFetchGroups = { course, faculty ->
+                viewModel.fetchGroups(course, faculty)
             }
         )
     }
@@ -921,16 +922,18 @@ fun SubgroupFilterBar(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsDialog(
+    currentFaculty: String = "2",
     currentCourse: String,
     currentGroup: String,
     currentThemeMode: String = "SYSTEM",
     currentShowTomorrowPreview: Boolean = true,
     onDismiss: () -> Unit,
-    onSave: (course: String, group: String) -> Unit,
+    onSave: (course: String, group: String, faculty: String) -> Unit,
     onThemeModeChange: (String) -> Unit = {},
     onShowTomorrowPreviewChange: (Boolean) -> Unit = {},
-    onFetchGroups: suspend (course: String) -> List<String>
+    onFetchGroups: suspend (course: String, faculty: String) -> List<String>
 ) {
+    var selectedFaculty by remember { mutableStateOf(currentFaculty) }
     var selectedCourse by remember { mutableStateOf(currentCourse) }
     var selectedGroup by remember { mutableStateOf(currentGroup) }
     var selectedThemeMode by remember { mutableStateOf(currentThemeMode) }
@@ -939,13 +942,13 @@ fun SettingsDialog(
     var groupSearchQuery by remember { mutableStateOf("") }
     var isLoadingGroups by remember { mutableStateOf(false) }
 
-    LaunchedEffect(selectedCourse) {
+    LaunchedEffect(selectedFaculty, selectedCourse) {
         isLoadingGroups = true
         groupSearchQuery = ""
         try {
-            val groups = onFetchGroups(selectedCourse)
+            val groups = onFetchGroups(selectedCourse, selectedFaculty)
             availableGroups = groups
-            // Automatic fallback if current group does not belong to the selected course
+            // Automatic fallback if current group does not belong to the selected course and faculty
             if (groups.isNotEmpty() && !groups.contains(selectedGroup)) {
                 selectedGroup = groups.first()
             }
@@ -975,6 +978,32 @@ fun SettingsDialog(
         },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                // Faculty selection
+                Column {
+                    Text(
+                        text = "Факультет:",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        val faculties = listOf(
+                            "2" to "ФМОС",
+                            "4" to "ФЭМ"
+                        )
+                        faculties.forEach { (facId, facLabel) ->
+                            FilterChip(
+                                selected = selectedFaculty == facId,
+                                onClick = { selectedFaculty = facId },
+                                label = { Text(facLabel) }
+                            )
+                        }
+                    }
+                }
+
                 // Course selection
                 Column {
                     Text(
@@ -1138,7 +1167,7 @@ fun SettingsDialog(
         },
         confirmButton = {
             Button(
-                onClick = { onSave(selectedCourse, selectedGroup) },
+                onClick = { onSave(selectedCourse, selectedGroup, selectedFaculty) },
                 enabled = selectedGroup.isNotBlank()
             ) {
                 Text("Сохранить")

@@ -21,11 +21,20 @@ class UserSettingsTest {
     @Test
     fun defaultSettings_hasSensibleDefaults() {
         val settings = userSettingsRepository.getSettings()
+        assertEquals("2", settings.faculty)
         assertEquals("4", settings.course)
         assertEquals("31ПИ1", settings.group)
         assertEquals(0, settings.subgroup)
         assertEquals("SYSTEM", settings.themeMode)
         assertEquals(true, settings.showTomorrowPreview)
+    }
+
+    @Test
+    fun updateFaculty_updatesStateAndFlow() {
+        userSettingsRepository.updateFaculty("4")
+
+        assertEquals("4", userSettingsRepository.getSettings().faculty)
+        assertEquals("4", userSettingsRepository.settingsFlow.value.faculty)
     }
 
     @Test
@@ -112,17 +121,29 @@ class UserSettingsTest {
     }
 
     @Test
+    fun scheduleRepository_validateFaculty_allowsOnlyAllowedFaculties() {
+        assertEquals("2", ScheduleRepository.validateFaculty("2"))
+        assertEquals("4", ScheduleRepository.validateFaculty("4"))
+        assertEquals("2", ScheduleRepository.validateFaculty("1"))
+        assertEquals("2", ScheduleRepository.validateFaculty("3"))
+        assertEquals("2", ScheduleRepository.validateFaculty("invalid"))
+        assertEquals("2", ScheduleRepository.validateFaculty(null))
+    }
+
+    @Test
     fun scheduleRepository_dynamicTargetReflectsUserSettings() {
         val customSettings = UserSettingsRepository()
-        customSettings.updateSettings(course = "3", group = "22МЕД1")
+        customSettings.updateSettings(course = "3", group = "22МЕД1", faculty = "4")
 
         val repo = ScheduleRepository(userSettingsRepository = customSettings)
 
         // Without override, should take user settings
+        assertEquals("4", repo.getTargetFaculty())
         assertEquals("3", repo.getTargetCourse())
         assertEquals("22МЕД1", repo.getTargetGroup())
 
         // With explicit override, should respect override
+        assertEquals("2", repo.getTargetFaculty("2"))
         assertEquals("1", repo.getTargetCourse("1"))
         assertEquals("11ЭКО1", repo.getTargetGroup("11ЭКО1"))
     }

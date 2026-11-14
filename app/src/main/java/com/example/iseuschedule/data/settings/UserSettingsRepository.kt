@@ -11,9 +11,11 @@ data class UserSettings(
     val group: String = DEFAULT_GROUP,
     val subgroup: Int = DEFAULT_SUBGROUP, // 0 = Все, 1 = 1-я подгруппа, 2 = 2-я подгруппа
     val themeMode: String = DEFAULT_THEME_MODE, // SYSTEM, LIGHT, DARK
-    val showTomorrowPreview: Boolean = DEFAULT_SHOW_TOMORROW_PREVIEW
+    val showTomorrowPreview: Boolean = DEFAULT_SHOW_TOMORROW_PREVIEW,
+    val faculty: String = DEFAULT_FACULTY // 2 = ФМОС, 4 = ФЭМ
 ) {
     companion object {
+        const val DEFAULT_FACULTY = "2"
         const val DEFAULT_COURSE = "4"
         const val DEFAULT_GROUP = "31ПИ1"
         const val DEFAULT_SUBGROUP = 0
@@ -28,6 +30,7 @@ class UserSettingsRepository(
 ) {
     companion object {
         private const val PREFS_NAME = "iseu_user_settings"
+        private const val KEY_FACULTY = "key_faculty"
         private const val KEY_COURSE = "key_course"
         private const val KEY_GROUP = "key_group"
         private const val KEY_SUBGROUP = "key_subgroup"
@@ -57,12 +60,20 @@ class UserSettingsRepository(
     private fun loadSettings(): UserSettings {
         val sp = sharedPreferences ?: return inMemorySettings
         return UserSettings(
+            faculty = sp.getString(KEY_FACULTY, UserSettings.DEFAULT_FACULTY) ?: UserSettings.DEFAULT_FACULTY,
             course = sp.getString(KEY_COURSE, UserSettings.DEFAULT_COURSE) ?: UserSettings.DEFAULT_COURSE,
             group = sp.getString(KEY_GROUP, UserSettings.DEFAULT_GROUP) ?: UserSettings.DEFAULT_GROUP,
             subgroup = sp.getInt(KEY_SUBGROUP, UserSettings.DEFAULT_SUBGROUP),
             themeMode = sp.getString(KEY_THEME_MODE, UserSettings.DEFAULT_THEME_MODE) ?: UserSettings.DEFAULT_THEME_MODE,
             showTomorrowPreview = sp.getBoolean(KEY_SHOW_TOMORROW_PREVIEW, UserSettings.DEFAULT_SHOW_TOMORROW_PREVIEW)
         )
+    }
+
+    fun updateFaculty(newFaculty: String) {
+        val current = _settingsFlow.value
+        if (current.faculty != newFaculty) {
+            persist(current.copy(faculty = newFaculty))
+        }
     }
 
     fun updateCourse(newCourse: String) {
@@ -105,7 +116,8 @@ class UserSettingsRepository(
         group: String,
         subgroup: Int = 0,
         themeMode: String = _settingsFlow.value.themeMode,
-        showTomorrowPreview: Boolean = _settingsFlow.value.showTomorrowPreview
+        showTomorrowPreview: Boolean = _settingsFlow.value.showTomorrowPreview,
+        faculty: String = _settingsFlow.value.faculty
     ) {
         persist(
             UserSettings(
@@ -113,7 +125,8 @@ class UserSettingsRepository(
                 group = group,
                 subgroup = subgroup,
                 themeMode = themeMode,
-                showTomorrowPreview = showTomorrowPreview
+                showTomorrowPreview = showTomorrowPreview,
+                faculty = faculty
             )
         )
     }
@@ -122,6 +135,7 @@ class UserSettingsRepository(
         inMemorySettings = settings
         _settingsFlow.value = settings
         sharedPreferences?.edit()?.apply {
+            putString(KEY_FACULTY, settings.faculty)
             putString(KEY_COURSE, settings.course)
             putString(KEY_GROUP, settings.group)
             putInt(KEY_SUBGROUP, settings.subgroup)
